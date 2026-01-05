@@ -77,11 +77,12 @@
       adminStats: { totalParents: 0, evaluatedParents: 0 }, assignedProviders: [],
       allProviders: [], selectedProviderForAdmin: null, providerEvaluationsDetail: [],
       currentEvaluation: null, currentComment: null, selectedProvider: null,
-      evaluationStats: null, news: [], currentPage: 'home', error: ''
+      evaluationStats: null, news: [], currentPage: 'home', error: '', loading: false
     };
 
     function init() { checkUser(); fetchNews(); render(); }
     function toggleElement(id) { const el = document.getElementById(id); if (el) el.classList.toggle('hidden'); }
+    
     function checkUser() {
       const stored = sessionStorage.getItem('childcare_user');
       if (stored) {
@@ -102,6 +103,61 @@
       } catch (e) {}
     }
 
+    // --- 家長端修復重點 ---
+    async function fetchParentData() {
+      state.loading = true; render();
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/parents?user_id=eq.${state.user.id}&select=*`, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+        });
+        if (res.ok) state.parentData = (await res.json())[0];
+        await fetchAssignedProviders();
+      } catch (e) {
+        state.error = "讀取家長資料失敗";
+      } finally {
+        state.loading = false; render();
+      }
+    }
+
+    async function fetchAssignedProviders() {
+      try {
+        const aRes = await fetch(`${SUPABASE_URL}/rest/v1/parent_provider_assignments?parent_user_id=eq.${state.user.id}&select=provider_id`, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+        });
+        if (aRes.ok) {
+          const assignments = await aRes.json();
+          const ids = assignments.map(a => a.provider_id);
+          if (ids.length > 0) {
+            const pRes = await fetch(`${SUPABASE_URL}/rest/v1/child_care_providers?id=in.(${ids.join(',')})&select=*`, {
+              headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+            });
+            if (pRes.ok) state.assignedProviders = await pRes.json();
+          } else {
+            state.assignedProviders = []; // 確定沒有分配
+          }
+        }
+      } catch (e) {
+        console.error("分配讀取錯誤:", e);
+      }
+    }
+
+    async function fetchParentEvaluation(pid) {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/evaluations?parent_user_id=eq.${state.user.id}&provider_id=eq.${pid}&select=*`, {
+        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+      });
+      if (res.ok) state.currentEvaluation = (await res.json())[0] || null;
+      render();
+    }
+
+    async function fetchParentComment(pid) {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/parent_comments?parent_user_id=eq.${state.user.id}&provider_id=eq.${pid}&select=*`, {
+        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+      });
+      if (res.ok) state.currentComment = (await res.json())[0] || null;
+      render();
+    }
+
+    // --- 其他角色與功能 ---
     async function fetchProviderData() {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/child_care_providers?user_id=eq.${state.user.id}&select=*`, {
         headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
@@ -156,66 +212,8 @@
       }
     }
 
-    async function fetchParentData() {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/parents?user_id=eq.${state.user.id}&select=*`, {
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-      });
-      if (res.ok) state.parentData = (await res.json())[0];
-      await fetchAssignedProviders();
-    }
-
-    async function fetchAssignedProviders() {
-      const aRes = await fetch(`${SUPABASE_URL}/rest/v1/parent_provider_assignments?parent_user_id=eq.${state.user.id}&select=provider_id`, {
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-      });
-      if (aRes.ok) {
-        const ids = (await aRes.json()).map(a => a.provider_id);
-        if (ids.length > 0) {
-          const pRes = await fetch(`${SUPABASE_URL}/rest/v1/child_care_providers?id=in.(${ids.join(',')})&select=*`, {
-            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-          });
-          if (pRes.ok) { state.assignedProviders = await pRes.json(); render(); }
-        }
-      }
-    }
-
-    async function fetchProviderDetailForAdmin(providerId) {
-      const eRes = await fetch(`${SUPABASE_URL}/rest/v1/evaluations?provider_id=eq.${providerId}&select=*`, {
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-      });
-      const cRes = await fetch(`${SUPABASE_URL}/rest/v1/parent_comments?provider_id=eq.${providerId}&select=*`, {
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-      });
-      if (eRes.ok && cRes.ok) {
-        const evals = await eRes.json();
-        const comms = await cRes.json();
-        const uids = [...new Set([...evals.map(e=>e.parent_user_id), ...comms.map(c=>c.parent_user_id)])];
-        let parents = [];
-        if (uids.length > 0) {
-          const pRes = await fetch(`${SUPABASE_URL}/rest/v1/parents?user_id=in.(${uids.join(',')})&select=*`, {
-            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-          });
-          parents = await pRes.json();
-        }
-        state.providerEvaluationsDetail = uids.map(uid => {
-          const ev = evals.find(e => e.parent_user_id === uid) || {};
-          const co = comms.find(c => c.parent_user_id === uid);
-          const pa = parents.find(p => p.user_id === uid);
-          return { ...ev, parent_user_id: uid, parent_name: pa ? pa.name : '未知家長', comment: co ? co.comment : null, updated_at: ev.updated_at || (co?co.created_at:null) };
-        });
-        render();
-      }
-    }
-
-    async function selectProviderForAdmin(provider) {
-      state.selectedProviderForAdmin = provider;
-      await fetchProviderDetailForAdmin(provider.id);
-      state.currentPage = 'admin-provider-detail';
-      render();
-    }
-
     async function handleLogin(email, password) {
-      state.error = '';
+      state.error = ''; state.loading = true; render();
       try {
         const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
           method: 'POST',
@@ -223,10 +221,12 @@
           body: JSON.stringify({ email, password })
         });
         const data = await res.json();
-        if (!data.access_token) { state.error = '帳號或密碼錯誤'; render(); return; }
+        if (!data.access_token) { state.error = '帳號或密碼錯誤'; state.loading = false; render(); return; }
+        
         const uid = data.user.id;
         const tk = data.access_token;
         let role = null;
+
         const pCheck = await fetch(`${SUPABASE_URL}/rest/v1/child_care_providers?user_id=eq.${uid}&select=id`, { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${tk}` } });
         if (pCheck.ok && (await pCheck.json()).length > 0) role = 'provider';
         if (!role) {
@@ -237,12 +237,14 @@
           const adCheck = await fetch(`${SUPABASE_URL}/rest/v1/admins?user_id=eq.${uid}&select=id`, { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${tk}` } });
           if (adCheck.ok && (await adCheck.json()).length > 0) role = 'admin';
         }
-        if (!role) { state.error = '無對應身份'; render(); return; }
+
+        if (!role) { state.error = '無對應身份'; state.loading = false; render(); return; }
+        
         state.user = { id: uid, email: data.user.email, token: tk, role: role };
         state.userRole = role;
         sessionStorage.setItem('childcare_user', JSON.stringify(state.user));
         location.reload();
-      } catch (e) { state.error = '登入失敗'; render(); }
+      } catch (e) { state.error = '登入失敗'; state.loading = false; render(); }
     }
 
     function handleLogout() { sessionStorage.removeItem('childcare_user'); location.reload(); }
@@ -270,6 +272,7 @@
       if (res.ok) { alert('留言已送出'); navigateTo('evaluate'); }
     }
 
+    // --- 介面渲染 ---
     function render() {
       const app = document.getElementById('app');
       app.innerHTML = `
@@ -292,7 +295,7 @@
         </nav>
         <div class="flex-grow">
           <main class="max-w-7xl mx-auto px-4 py-10">
-            ${renderContent()}
+            ${state.loading ? `<div class="text-center py-20 text-gray-500">載入中，請稍候...</div>` : renderContent()}
           </main>
         </div>
         <footer class="bg-gradient-to-r from-gray-800 to-gray-900 mt-20">
@@ -306,9 +309,6 @@
               </div>
               <p class="text-sm">電子郵件：baby29760376@gmail.com</p>
             </div>
-            <div class="pt-6 border-t border-gray-700">
-              <p class="text-[10px] text-gray-500 uppercase tracking-widest tracking-tighter">Child Care Provider Incentive Pilot Program System</p>
-            </div>
           </div>
         </footer>
       `;
@@ -316,37 +316,10 @@
 
     function renderContent() {
       switch(state.currentPage) {
-        case 'home': return `
-          <div class="text-center py-20 bg-white rounded-3xl shadow-xl">
-            <h2 class="text-4xl font-bold text-gray-800 mb-4">歡迎使用評價系統</h2>
-            <p class="text-gray-500 mb-8">讓我們一起營造更好的托育環境</p>
-            <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto px-4 text-left">
-              ${state.news.slice(0, 4).map(n => `<div class="p-4 border-l-4 border-yellow-400 bg-yellow-50"><h4 class="font-bold">${n.title}</h4><p class="text-sm text-gray-600">${n.content}</p></div>`).join('')}
-            </div>
-          </div>`;
-        case 'login': return `
-          <div class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl border-t-8 border-yellow-400">
-            <h3 class="text-2xl font-bold mb-6 text-center">帳號登入</h3>
-            ${state.error ? `<p class="text-red-500 mb-4">${state.error}</p>` : ''}
-            <input id="email" type="email" placeholder="Email" class="w-full p-3 border mb-4 rounded">
-            <input id="password" type="password" placeholder="Password" class="w-full p-3 border mb-6 rounded">
-            <button onclick="handleLogin(document.getElementById('email').value, document.getElementById('password').value)" class="w-full bg-yellow-400 text-white p-3 rounded font-bold">進入系統</button>
-          </div>`;
-        case 'profile': return `
-          <div class="bg-white p-8 rounded-2xl shadow-lg">
-            <div class="flex items-center space-x-6 mb-10"><div class="text-6xl">👩‍🏫</div><div><h2 class="text-3xl font-bold">${state.providerData?.name}</h2><p class="text-gray-500">${state.providerData?.account}</p></div></div>
-            <div class="grid grid-cols-2 gap-4">
-              <div class="p-6 bg-red-50 rounded-xl text-center border border-red-100"><p class="text-gray-500 text-sm">累積愛心</p><p class="text-4xl font-bold text-red-500">${state.evaluationStats?.total_hearts || 0}</p></div>
-              <div class="p-6 bg-blue-50 rounded-xl text-center border border-blue-100"><p class="text-gray-500 text-sm">評價家長</p><p class="text-4xl font-bold text-blue-500">${state.evaluationStats?.total_parents || 0}</p></div>
-            </div>
-          </div>`;
-        case 'evaluate': return `
-          <div class="grid md:grid-cols-3 gap-6">
-            ${state.assignedProviders.map(p => `
-              <div class="bg-white p-6 rounded-xl shadow cursor-pointer hover:ring-2 hover:ring-yellow-400" onclick="(async () => { state.selectedProvider = ${JSON.stringify(p).replace(/"/g, '&quot;')}; await fetchParentEvaluation(p.id); await fetchParentComment(p.id); state.currentPage='evaluate-detail'; render(); })()">
-                <div class="text-4xl mb-4 text-center">👩‍🏫</div><h4 class="text-xl font-bold text-center">${p.name}</h4><p class="text-center text-gray-500 text-sm">點選開始評價</p>
-              </div>`).join('')}
-          </div>`;
+        case 'home': return renderHome();
+        case 'login': return renderLogin();
+        case 'profile': return renderProfile();
+        case 'evaluate': return renderEvaluateList();
         case 'evaluate-detail': return renderEvaluateDetail();
         case 'admin-dashboard': return renderAdminDashboard();
         case 'admin-provider-detail': return renderAdminProviderDetail();
@@ -354,18 +327,63 @@
       }
     }
 
-    async function fetchParentEvaluation(pid) {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/evaluations?parent_user_id=eq.${state.user.id}&provider_id=eq.${pid}&select=*`, {
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-      });
-      state.currentEvaluation = (await res.json())[0] || null;
+    function renderHome() {
+        return `
+          <div class="text-center py-20 bg-white rounded-3xl shadow-xl">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">歡迎使用評價系統</h2>
+            <p class="text-gray-500 mb-8">讓我們一起營造更好的托育環境</p>
+            <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto px-4 text-left">
+              ${state.news.slice(0, 4).map(n => `<div class="p-4 border-l-4 border-yellow-400 bg-yellow-50"><h4 class="font-bold">${n.title}</h4><p class="text-sm text-gray-600">${n.content}</p></div>`).join('')}
+            </div>
+          </div>`;
     }
 
-    async function fetchParentComment(pid) {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/parent_comments?parent_user_id=eq.${state.user.id}&provider_id=eq.${pid}&select=*`, {
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-      });
-      state.currentComment = (await res.json())[0] || null;
+    function renderLogin() {
+        return `
+          <div class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl border-t-8 border-yellow-400">
+            <h3 class="text-2xl font-bold mb-6 text-center">帳號登入</h3>
+            ${state.error ? `<p class="text-red-500 mb-4">${state.error}</p>` : ''}
+            <input id="email" type="email" placeholder="Email" class="w-full p-3 border mb-4 rounded">
+            <input id="password" type="password" placeholder="Password" class="w-full p-3 border mb-6 rounded">
+            <button onclick="handleLogin(document.getElementById('email').value, document.getElementById('password').value)" class="w-full bg-yellow-400 text-white p-3 rounded font-bold">進入系統</button>
+          </div>`;
+    }
+
+    function renderProfile() {
+        const s = state.evaluationStats || { total_hearts:0, total_parents:0 };
+        return `
+          <div class="bg-white p-8 rounded-2xl shadow-lg">
+            <div class="flex items-center space-x-6 mb-10"><div class="text-6xl">👩‍🏫</div><div><h2 class="text-3xl font-bold">${state.providerData?.name || '托育人員'}</h2><p class="text-gray-500">${state.providerData?.account || ''}</p></div></div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="p-6 bg-red-50 rounded-xl text-center border border-red-100"><p class="text-gray-500 text-sm">累積愛心</p><p class="text-4xl font-bold text-red-500">${s.total_hearts}</p></div>
+              <div class="p-6 bg-blue-50 rounded-xl text-center border border-blue-100"><p class="text-gray-500 text-sm">評價家長</p><p class="text-4xl font-bold text-blue-500">${s.total_parents}</p></div>
+            </div>
+          </div>`;
+    }
+
+    function renderEvaluateList() {
+        if (state.assignedProviders.length === 0) {
+            return `
+              <div class="text-center py-20 bg-white rounded-3xl shadow-xl px-6">
+                <div class="text-6xl mb-4">📋</div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">尚未分配可評價的人員</h3>
+                <p class="text-gray-500 mb-6">系統查無您名下對應的托育人員，若需進行評價，請聯繫居服中心。</p>
+                <div class="inline-block bg-amber-50 p-4 rounded-xl border border-amber-200 text-sm">
+                    <p><strong>中心電話：</strong>02-29760376</p>
+                    <p><strong>服務時間：</strong>週一至週五 08:30 - 17:30</p>
+                </div>
+              </div>`;
+        }
+        return `
+          <div class="grid md:grid-cols-3 gap-6">
+            ${state.assignedProviders.map(p => `
+              <div class="bg-white p-6 rounded-xl shadow cursor-pointer hover:ring-2 hover:ring-yellow-400 transition" 
+                   onclick="(async () => { state.selectedProvider = ${JSON.stringify(p).replace(/"/g, '&quot;')}; await fetchParentEvaluation(p.id); await fetchParentComment(p.id); state.currentPage='evaluate-detail'; render(); })()">
+                <div class="text-4xl mb-4 text-center">👩‍🏫</div>
+                <h4 class="text-xl font-bold text-center">${p.name}</h4>
+                <p class="text-center text-gray-500 text-sm mt-2">點選開始評價</p>
+              </div>`).join('')}
+          </div>`;
     }
 
     function renderEvaluateDetail() {
@@ -373,27 +391,28 @@
       const locked = !!state.currentEvaluation?.id;
       return `
         <div class="max-w-3xl mx-auto bg-white p-8 rounded-2xl shadow-xl">
-          <h2 class="text-2xl font-bold mb-6">正在評價：${p.name}</h2>
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold italic">正在評價：${p.name}</h2>
+            <button onclick="navigateTo('evaluate')" class="text-gray-400 hover:text-gray-600">← 返回</button>
+          </div>
           <form onsubmit="event.preventDefault(); const d={}; Object.values(EVALUATION_ITEMS).flat().forEach(i=>d[i.key]=document.getElementsByName(i.key)[0].checked); saveEvaluation('${p.id}', d);">
             ${Object.entries(EVALUATION_ITEMS).map(([cat, items]) => `
-              <div class="mb-8"><h3 class="font-bold text-lg mb-4 text-yellow-600">${cat === 'communication' ? '保親溝通' : cat === 'activity' ? '活動安排' : cat === 'routine' ? '作息習慣' : '保親關係'}</h3>
-              ${items.map(i => `<label class="flex items-center space-x-3 mb-3 p-3 bg-gray-50 rounded"><input type="checkbox" name="${i.key}" ${state.currentEvaluation?.[i.key]?'checked':''} ${locked?'disabled':''} class="w-5 h-5"><span>${i.text}</span></label>`).join('')}</div>
+              <div class="mb-8">
+                <h3 class="font-bold text-lg mb-4 text-yellow-600 border-b pb-2">${cat === 'communication' ? '一、保親溝通' : cat === 'activity' ? '二、活動安排' : cat === 'routine' ? '三、作息習慣' : '四、保親關係'}</h3>
+                ${items.map(i => `<label class="flex items-center space-x-3 mb-3 p-3 bg-gray-50 rounded hover:bg-gray-100 transition"><input type="checkbox" name="${i.key}" ${state.currentEvaluation?.[i.key]?'checked':''} ${locked?'disabled':''} class="heart-checkbox"><span class="text-gray-700">${i.text}</span></label>`).join('')}
+              </div>
             `).join('')}
-            ${!locked ? `<button type="submit" class="w-full bg-yellow-400 text-white p-4 rounded-xl font-bold">送出評價</button>` : `<div class="p-4 bg-green-100 text-green-700 text-center rounded font-bold">已完成提交，評價內容已鎖定</div>`}
+            ${!locked ? `<button type="submit" class="w-full bg-yellow-400 text-white p-4 rounded-xl font-bold text-lg shadow-lg hover:bg-yellow-500 transition">送出評價</button>` : `<div class="p-4 bg-green-50 text-green-700 text-center rounded-xl border border-green-200 font-bold">✅ 已完成提交，評價內容已鎖定</div>`}
           </form>
           <div class="mt-10 pt-10 border-t">
-            <h3 class="font-bold mb-4">文字留言 (居服中心管理員查閱)</h3>
-            ${state.currentComment ? `<div class="p-4 bg-gray-50 rounded italic">"${state.currentComment.comment}"</div>` : `
-              <textarea id="parentComment" class="w-full p-4 border rounded mb-4" rows="3" placeholder="有什麼建議想對中心說嗎？"></textarea>
-              <button onclick="saveComment('${p.id}')" class="w-full bg-gray-800 text-white p-3 rounded">送出留言</button>`}
+            <h3 class="font-bold mb-4 flex items-center gap-2"><span>💬</span> 文字留言 (僅供中心參考)</h3>
+            ${state.currentComment ? `<div class="p-4 bg-gray-50 rounded-xl italic border">"${state.currentComment.comment}"</div>` : `
+              <textarea id="parentComment" class="w-full p-4 border rounded-xl mb-4 focus:ring-2 focus:ring-yellow-400 outline-none" rows="3" placeholder="有什麼建議想對中心說嗎？"></textarea>
+              <button onclick="saveComment('${p.id}')" class="w-full bg-gray-800 text-white p-3 rounded-xl font-bold hover:bg-black transition">送出留言</button>`}
           </div>
-          <div class="mt-12 p-6 bg-amber-50 rounded-xl border-2 border-dashed border-amber-200 text-center md:text-left">
-            <h4 class="font-bold text-amber-800 mb-2">📞 居服中心聯繫資訊</h4>
-            <p class="text-sm text-amber-700 mb-4">如需修改已提交的評價，請於辦公時間致電由管理員核對身份後處理：</p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm font-medium">
-              <div class="bg-white p-2 rounded shadow-sm">電話：(02) 2976-0376</div>
-              <div class="bg-white p-2 rounded shadow-sm text-xs truncate">Email：baby29760376@gmail.com</div>
-            </div>
+          <div class="mt-8 p-6 bg-red-50 rounded-xl border-2 border-dashed border-red-200">
+             <p class="text-sm text-red-800 font-bold mb-2">💡 評價修改須知：</p>
+             <p class="text-xs text-red-700">為維護系統公正性，評價送出後即鎖定。如確有誤填，請致電居服中心 <strong>02-29760376</strong>，由工作人員核對身分後手動調整。</p>
           </div>
         </div>`;
     }
@@ -401,17 +420,17 @@
     function renderAdminDashboard() {
       return `
         <div class="grid md:grid-cols-3 gap-4 mb-10 text-center">
-          <div class="bg-white p-6 rounded-xl shadow"><p class="text-gray-500">家長總數</p><p class="text-4xl font-bold text-yellow-500">${state.adminStats.totalParents}</p></div>
-          <div class="bg-white p-6 rounded-xl shadow"><p class="text-gray-500">已評價數</p><p class="text-4xl font-bold text-green-500">${state.adminStats.evaluatedParents}</p></div>
-          <div class="bg-white p-6 rounded-xl shadow"><p class="text-gray-500">托育人員</p><p class="text-4xl font-bold text-blue-500">${state.allProviders.length}</p></div>
+          <div class="bg-white p-6 rounded-xl shadow border-b-4 border-yellow-400"><p class="text-gray-500">家長總數</p><p class="text-4xl font-bold text-yellow-500">${state.adminStats.totalParents}</p></div>
+          <div class="bg-white p-6 rounded-xl shadow border-b-4 border-green-400"><p class="text-gray-500">已評價數</p><p class="text-4xl font-bold text-green-500">${state.adminStats.evaluatedParents}</p></div>
+          <div class="bg-white p-6 rounded-xl shadow border-b-4 border-blue-400"><p class="text-gray-500">托育人員</p><p class="text-4xl font-bold text-blue-500">${state.allProviders.length}</p></div>
         </div>
         <div class="space-y-4">
           ${state.allProviders.map(p => `
             <div class="bg-white p-5 rounded-xl shadow flex justify-between items-center cursor-pointer hover:bg-gray-50" onclick="selectProviderForAdmin(${JSON.stringify(p).replace(/"/g, '&quot;')})">
               <div class="flex items-center space-x-4"><span class="text-3xl">👩‍🏫</span><div><h4 class="font-bold">${p.name}</h4><p class="text-xs text-gray-400">@${p.account}</p></div></div>
               <div class="flex space-x-8 text-center">
-                <div><p class="font-bold text-red-500">${p.stats.total_hearts}</p><p class="text-[10px] text-gray-400">愛心</p></div>
-                <button class="bg-gray-100 px-4 py-2 rounded text-sm">詳情</button>
+                <div><p class="font-bold text-red-500">${p.stats.total_hearts}</p><p class="text-[10px] text-gray-400 uppercase">Hearts</p></div>
+                <button class="bg-gray-100 px-4 py-2 rounded text-sm font-bold">查看明細</button>
               </div>
             </div>`).join('')}
         </div>`;
@@ -421,21 +440,24 @@
       const p = state.selectedProviderForAdmin;
       return `
         <div class="max-w-5xl mx-auto">
-          <button onclick="navigateTo('admin-dashboard')" class="mb-6 text-gray-500">← 返回總覽</button>
-          <h2 class="text-3xl font-bold mb-8">${p.name} 的詳細評分明細</h2>
+          <button onclick="navigateTo('admin-dashboard')" class="mb-6 text-gray-500 hover:text-gray-800">← 返回管理總覽</button>
+          <div class="bg-white p-8 rounded-2xl shadow-xl mb-8 border-t-8 border-blue-500">
+            <h2 class="text-3xl font-bold mb-2">${p.name}</h2>
+            <p class="text-gray-500 italic">評分明細與家長留言列表</p>
+          </div>
           <div class="space-y-6">
-            ${state.providerEvaluationsDetail.map(ed => `
+            ${state.providerEvaluationsDetail.length === 0 ? `<p class="text-center py-20 text-gray-400">尚無評價資料</p>` : state.providerEvaluationsDetail.map(ed => `
               <div class="bg-white p-6 rounded-2xl shadow border-l-8 border-yellow-400">
                 <div class="flex justify-between items-start mb-6">
-                  <div><h4 class="text-lg font-bold">${ed.parent_name}</h4><p class="text-xs text-gray-400">${new Date(ed.updated_at).toLocaleString()}</p></div>
-                  <button onclick="toggleElement('detail-${ed.parent_user_id}')" class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded">查看 20 項明細</button>
+                  <div><h4 class="text-lg font-bold">${ed.parent_name}</h4><p class="text-xs text-gray-400">${ed.updated_at ? new Date(ed.updated_at).toLocaleString() : '僅留言'}</p></div>
+                  <button onclick="toggleElement('detail-${ed.parent_user_id}')" class="text-xs bg-blue-500 text-white px-3 py-1 rounded font-bold">點選查看勾選項</button>
                 </div>
                 <div id="detail-${ed.parent_user_id}" class="hidden mb-6 p-4 bg-gray-50 rounded-xl grid md:grid-cols-2 lg:grid-cols-4 gap-4 text-[10px]">
                   ${Object.entries(EVALUATION_ITEMS).map(([cat, items]) => `
-                    <div><p class="font-bold border-b mb-1">${cat}</p>
+                    <div><p class="font-bold border-b mb-1 text-gray-600">${cat}</p>
                     ${items.map(i => `<p class="${ed[i.key]?'text-red-500 font-bold':'text-gray-300'}">${ed[i.key]?'❤️':'⚪'} ${i.text}</p>`).join('')}</div>`).join('')}
                 </div>
-                ${ed.comment ? `<div class="p-4 bg-amber-50 rounded border italic text-sm">留言：${ed.comment}</div>` : ''}
+                ${ed.comment ? `<div class="p-4 bg-amber-50 rounded-xl border border-amber-100 text-amber-900 text-sm italic">" ${ed.comment} "</div>` : ''}
               </div>`).join('')}
           </div>
         </div>`;
