@@ -21,38 +21,19 @@
   </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
-    body {
-      font-family: 'Noto Sans TC', sans-serif;
-    }
-    .heart-checkbox {
-      appearance: none;
-      width: 32px;
-      height: 32px;
-      cursor: pointer;
-      position: relative;
-    }
-    .heart-checkbox::before {
-      content: '🤍';
-      font-size: 28px;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-    }
-    .heart-checkbox:checked::before {
-      content: '❤️';
-    }
+    body { font-family: 'Noto Sans TC', sans-serif; }
+    .heart-checkbox { appearance: none; width: 32px; height: 32px; cursor: pointer; position: relative; }
+    .heart-checkbox::before { content: '🤍'; font-size: 28px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+    .heart-checkbox:checked::before { content: '❤️'; }
   </style>
 </head>
 <body class="bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 min-h-screen">
   <div id="app"></div>
 
   <script>
-    // Supabase 設定
     const SUPABASE_URL = 'https://utszytwaabadivssondj.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0c3p5dHdhYWJhZGl2c3NvbmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzMzQ1MDIsImV4cCI6MjA3NzkxMDUwMn0.Tq2RlCaOegGV7I8jYqgFLHOLpm-bic1RTuIpRzuwqaY';
 
-    // 評價項目定義 (原始定義)
     const EVALUATION_ITEMS = {
       communication: [
         { key: 'communication_1', text: '清楚表達托育理念及托育內容' },
@@ -103,8 +84,8 @@
     };
 
     function init() { checkUser(); fetchNews(); render(); }
+    function toggleElement(id) { const el = document.getElementById(id); if (el) el.classList.toggle('hidden'); }
 
-    // 原始 fetch 邏輯保持不變
     function checkUser() {
       const storedUser = sessionStorage.getItem('childcare_user');
       if (storedUser) {
@@ -393,10 +374,6 @@
 
     function navigateTo(page) { state.currentPage = page; state.error = ''; render(); }
 
-    function toggleElement(id) { const el = document.getElementById(id); if (el) el.classList.toggle('hidden'); }
-
-    // --- 渲染部分 (含修改) ---
-
     function render() {
       const app = document.getElementById('app');
       app.innerHTML = `
@@ -438,64 +415,49 @@
 
     function renderPage() {
       switch(state.currentPage) {
-        case 'home': return renderHome();
-        case 'login': return renderLogin();
-        case 'profile': return renderProfile();
-        case 'evaluate': return renderEvaluate();
+        case 'home': return `
+          <div class="bg-white rounded-2xl shadow-xl p-8 text-center">
+            <h2 class="text-4xl font-bold mb-4">歡迎來到評價系統</h2>
+            <div class="grid md:grid-cols-2 gap-8 text-left mt-8">
+              ${state.news.map(n => `<div class="p-4 border-l-4 border-yellow-400 bg-yellow-50"><h4 class="font-bold">${n.title}</h4><p>${n.content}</p></div>`).join('')}
+            </div>
+          </div>`;
+        case 'login': return `
+          <div class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl">
+            <h2 class="text-3xl font-bold text-center mb-8">登入系統</h2>
+            ${state.error ? `<div class="p-4 bg-red-50 text-red-700 mb-4 rounded">${state.error}</div>` : ''}
+            <input type="email" id="email" placeholder="電子郵件" class="w-full px-4 py-3 border rounded-lg mb-4">
+            <input type="password" id="password" placeholder="密碼" class="w-full px-4 py-3 border rounded-lg mb-6">
+            <button onclick="handleLogin(document.getElementById('email').value, document.getElementById('password').value)" class="w-full py-3 bg-yellow-400 text-white font-bold rounded-lg">登入</button>
+          </div>`;
+        case 'profile': return `
+          <div class="bg-white rounded-2xl shadow-xl p-8">
+            <h2 class="text-3xl font-bold mb-6">${state.providerData?.name}</h2>
+            <div class="grid md:grid-cols-2 gap-6">
+              <div class="p-6 bg-red-50 rounded-xl text-center"><p>總愛心</p><p class="text-4xl font-bold text-red-500">${state.evaluationStats?.total_hearts || 0}</p></div>
+              <div class="p-6 bg-blue-50 rounded-xl text-center"><p>評價人數</p><p class="text-4xl font-bold text-blue-500">${state.evaluationStats?.total_parents || 0}</p></div>
+            </div>
+          </div>`;
+        case 'evaluate': return `
+          <div class="grid md:grid-cols-3 gap-6">
+            ${state.assignedProviders.map(p => `
+              <div class="bg-white p-6 rounded-xl shadow cursor-pointer" 
+                   onclick="(async () => { 
+                     state.selectedProvider = ${JSON.stringify(p).replace(/"/g, '&quot;')}; 
+                     state.currentPage = 'evaluate-detail'; 
+                     render(); 
+                     await fetchEvaluation(p.id); 
+                     await fetchComment(p.id); 
+                   })()">
+                <h3 class="text-xl font-bold text-center">${p.name}</h3>
+                <p class="text-center text-gray-500">點擊開始評價</p>
+              </div>`).join('')}
+          </div>`;
         case 'evaluate-detail': return renderEvaluateDetail();
         case 'admin-dashboard': return renderAdminDashboard();
         case 'admin-provider-detail': return renderAdminProviderDetail();
         default: return '';
       }
-    }
-
-    function renderHome() {
-      return `
-        <div class="bg-white rounded-2xl shadow-xl p-8 text-center">
-          <h2 class="text-4xl font-bold mb-4">歡迎來到評價系統</h2>
-          <div class="grid md:grid-cols-2 gap-8 text-left mt-8">
-            ${state.news.map(n => `<div class="p-4 border-l-4 border-yellow-400 bg-yellow-50"><h4 class="font-bold">${n.title}</h4><p>${n.content}</p></div>`).join('')}
-          </div>
-        </div>
-      `;
-    }
-
-    function renderLogin() {
-      return `
-        <div class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl">
-          <h2 class="text-3xl font-bold text-center mb-8">登入系統</h2>
-          ${state.error ? `<div class="p-4 bg-red-50 text-red-700 mb-4 rounded">${state.error}</div>` : ''}
-          <input type="email" id="email" placeholder="電子郵件" class="w-full px-4 py-3 border rounded-lg mb-4">
-          <input type="password" id="password" placeholder="密碼" class="w-full px-4 py-3 border rounded-lg mb-6">
-          <button onclick="handleLogin(document.getElementById('email').value, document.getElementById('password').value)" class="w-full py-3 bg-yellow-400 text-white font-bold rounded-lg">登入</button>
-        </div>
-      `;
-    }
-
-    function renderProfile() {
-      const s = state.evaluationStats || { total_hearts: 0, total_parents: 0 };
-      return `
-        <div class="bg-white rounded-2xl shadow-xl p-8">
-          <h2 class="text-3xl font-bold mb-6">${state.providerData?.name}</h2>
-          <div class="grid md:grid-cols-2 gap-6">
-            <div class="p-6 bg-red-50 rounded-xl text-center"><p>總愛心</p><p class="text-4xl font-bold text-red-500">${s.total_hearts}</p></div>
-            <div class="p-6 bg-blue-50 rounded-xl text-center"><p>評價人數</p><p class="text-4xl font-bold text-blue-500">${s.total_parents}</p></div>
-          </div>
-        </div>
-      `;
-    }
-
-    function renderEvaluate() {
-      return `
-        <div class="grid md:grid-cols-3 gap-6">
-          ${state.assignedProviders.map(p => `
-            <div class="bg-white p-6 rounded-xl shadow cursor-pointer" onclick="(async () => { state.selectedProvider = ${JSON.stringify(p).replace(/"/g, '&quot;')}; await fetchEvaluation(p.id); await fetchComment(p.id); state.currentPage = 'evaluate-detail'; render(); })()">
-              <h3 class="text-xl font-bold text-center">${p.name}</h3>
-              <p class="text-center text-gray-500">點擊開始評價</p>
-            </div>
-          `).join('')}
-        </div>
-      `;
     }
 
     function renderEvaluateDetail() {
@@ -508,69 +470,66 @@
           <form onsubmit="event.preventDefault(); const d={}; Object.values(EVALUATION_ITEMS).flat().forEach(i=>d[i.key]=document.getElementsByName(i.key)[0].checked); saveEvaluation('${p.id}', d);">
             ${Object.entries(EVALUATION_ITEMS).map(([cat, items]) => `
               <div class="mb-8">
-                <h3 class="font-bold text-lg mb-4 text-yellow-600">${cat === 'communication' ? '保親溝通' : cat === 'activity' ? '活動安排' : cat === 'routine' ? '作息習慣' : '保親關係'}</h3>
+                <h3 class="font-bold text-lg mb-4 text-yellow-600">${cat === 'communication' ? '一、保親溝通' : cat === 'activity' ? '二、活動安排' : cat === 'routine' ? '三、作息習慣' : '四、保親關係'}</h3>
                 ${items.map(i => `<label class="flex items-center space-x-3 mb-2 p-2 bg-gray-50 rounded"><input type="checkbox" name="${i.key}" ${ev[i.key]?'checked':''} ${locked?'disabled':''} class="heart-checkbox"><span>${i.text}</span></label>`).join('')}
               </div>
             `).join('')}
-            ${!locked ? `<button type="submit" class="w-full py-4 bg-yellow-400 text-white font-bold rounded-lg">提交評價</button>` : `<div class="p-4 bg-green-100 text-green-700 text-center rounded">已完成評價</div>`}
+            ${!locked ? `<button type="submit" class="w-full py-4 bg-yellow-400 text-white font-bold rounded-lg">提交評價</button>` : `<div class="p-4 bg-green-100 text-green-700 text-center rounded">✅ 評價已完成提交且鎖定</div>`}
           </form>
           <div class="mt-8 pt-8 border-t">
-            <h3 class="font-bold mb-4">文字留言 (僅中心管理員可見)</h3>
-            ${state.currentComment ? `<div class="p-4 bg-gray-50 rounded">${state.currentComment.comment}</div>` : `
-              <textarea id="parentComment" class="w-full p-4 border rounded-lg mb-4" rows="3"></textarea>
-              <button onclick="saveComment('${p.id}')" class="w-full py-3 bg-gray-800 text-white rounded-lg">提交留言</button>
-            `}
+            <h3 class="font-bold mb-4">💬 文字留言 (僅中心管理員可見)</h3>
+            ${state.currentComment ? `<div class="p-4 bg-gray-50 rounded italic border">"${state.currentComment.comment}"</div>` : `
+              <textarea id="parentComment" class="w-full p-4 border rounded-lg mb-4" rows="3" placeholder="想對中心說的話..."></textarea>
+              <button onclick="saveComment('${p.id}')" class="w-full py-3 bg-gray-800 text-white rounded-lg">提交留言</button>`}
           </div>
           <div class="mt-10 p-4 bg-amber-50 rounded-lg border-2 border-dashed border-amber-200">
-            <p class="text-sm text-amber-800">💡 <strong>如需修改評價：</strong> 請致電中心 02-29760376 或 Email baby29760376@gmail.com，由管理員手動調整。</p>
+            <p class="text-sm text-amber-800 font-bold mb-2">📞 居托中心聯繫資訊</p>
+            <p class="text-xs text-amber-700">如需修改已提交的評價，請於辦公時間致電中心：<strong>(02) 2976-0376</strong>，或 Email：<strong>baby29760376@gmail.com</strong>。</p>
           </div>
-        </div>
-      `;
+        </div>`;
     }
 
     function renderAdminDashboard() {
       return `
         <div class="grid md:grid-cols-3 gap-6 mb-10 text-center">
-          <div class="bg-white p-6 rounded-xl shadow"><p>家長總數</p><p class="text-4xl font-bold text-yellow-500">${state.adminStats.totalParents}</p></div>
-          <div class="bg-white p-6 rounded-xl shadow"><p>已評價數</p><p class="text-4xl font-bold text-green-500">${state.adminStats.evaluatedParents}</p></div>
-          <div class="bg-white p-6 rounded-xl shadow"><p>托育人員</p><p class="text-4xl font-bold text-blue-500">${state.allProviders.length}</p></div>
+          <div class="bg-white p-6 rounded-xl shadow border-b-4 border-yellow-400"><p>家長總數</p><p class="text-4xl font-bold text-yellow-500">${state.adminStats.totalParents}</p></div>
+          <div class="bg-white p-6 rounded-xl shadow border-b-4 border-green-400"><p>已評價數</p><p class="text-4xl font-bold text-green-500">${state.adminStats.evaluatedParents}</p></div>
+          <div class="bg-white p-6 rounded-xl shadow border-b-4 border-blue-400"><p>托育人員</p><p class="text-4xl font-bold text-blue-500">${state.allProviders.length}</p></div>
         </div>
         <div class="space-y-4">
           ${state.allProviders.map(p => `
-            <div class="bg-white p-6 rounded-xl shadow flex justify-between items-center cursor-pointer" onclick="selectProviderForAdmin(${JSON.stringify(p).replace(/"/g, '&quot;')})">
+            <div class="bg-white p-6 rounded-xl shadow flex justify-between items-center cursor-pointer hover:bg-gray-50" onclick="selectProviderForAdmin(${JSON.stringify(p).replace(/"/g, '&quot;')})">
               <h4 class="font-bold text-lg">${p.name}</h4>
-              <div class="flex space-x-4"><span class="text-red-500">❤️ ${p.stats.total_hearts}</span><button class="bg-gray-100 px-4 py-2 rounded">詳情</button></div>
-            </div>
-          `).join('')}
-        </div>
-      `;
+              <div class="flex space-x-6">
+                <div class="text-center"><p class="text-red-500 font-bold">${p.stats.total_hearts}</p><p class="text-[10px] text-gray-400">HEARTS</p></div>
+                <button class="bg-gray-100 px-4 py-2 rounded text-sm">查看明細</button>
+              </div>
+            </div>`).join('')}
+        </div>`;
     }
 
     function renderAdminProviderDetail() {
       const p = state.selectedProviderForAdmin;
       return `
         <div class="max-w-5xl mx-auto">
-          <button onclick="navigateTo('admin-dashboard')" class="mb-6 text-gray-500">← 返回總覽</button>
-          <h2 class="text-3xl font-bold mb-8">${p.name} 的詳情</h2>
+          <button onclick="navigateTo('admin-dashboard')" class="mb-6 text-gray-500 hover:text-gray-800">← 返回管理總覽</button>
+          <h2 class="text-3xl font-bold mb-8">${p.name} 的詳情紀錄</h2>
           <div class="space-y-6">
-            ${state.providerEvaluationsDetail.map(ed => `
-              <div class="bg-white p-6 rounded-2xl shadow">
+            ${state.providerEvaluationsDetail.length === 0 ? '<p class="text-center py-20 text-gray-400">目前尚無資料</p>' : state.providerEvaluationsDetail.map(ed => `
+              <div class="bg-white p-6 rounded-2xl shadow border-l-8 border-yellow-400">
                 <div class="flex justify-between items-start mb-4">
-                  <div><h4 class="font-bold">${ed.parent_name}</h4><p class="text-xs text-gray-400">${ed.updated_at || ''}</p></div>
-                  <button onclick="toggleElement('detail-${ed.parent_user_id}')" class="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded">查看勾選細項</button>
+                  <div><h4 class="font-bold">${ed.parent_name}</h4><p class="text-xs text-gray-400">${ed.updated_at ? new Date(ed.updated_at).toLocaleString() : ''}</p></div>
+                  <button onclick="toggleElement('detail-${ed.parent_user_id}')" class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded">展開 20 項明細</button>
                 </div>
-                <div id="detail-${ed.parent_user_id}" class="hidden p-4 bg-gray-50 rounded-lg grid md:grid-cols-2 gap-4 text-xs mb-4">
+                <div id="detail-${ed.parent_user_id}" class="hidden p-4 bg-gray-50 rounded-xl grid md:grid-cols-2 lg:grid-cols-4 gap-4 text-[10px] mb-4">
                   ${Object.entries(EVALUATION_ITEMS).map(([cat, items]) => `
-                    <div><p class="font-bold border-b mb-1">${cat}</p>
-                    ${items.map(i => `<p class="${ed[i.key]?'text-red-500 font-bold':'text-gray-300'}">${ed[i.key]?'❤️':'⚪'} ${i.text}</p>`).join('')}</div>
-                  `).join('')}
+                    <div><p class="font-bold border-b mb-1 text-gray-600">${cat === 'communication' ? '溝通' : cat === 'activity' ? '活動' : cat === 'routine' ? '作息' : '關係'}</p>
+                    ${items.map(i => `<p class="${ed[i.key]?'text-red-500 font-bold':'text-gray-300'}">${ed[i.key]?'❤️':'⚪'} ${i.text}</p>`).join('')}</div>`).join('')}
                 </div>
-                ${ed.comment ? `<div class="p-4 bg-amber-50 rounded italic text-sm">留言：${ed.comment}</div>` : ''}
-              </div>
-            `).join('')}
+                ${ed.comment ? `<div class="p-4 bg-amber-50 rounded border border-amber-100 italic text-sm text-amber-900">留言：${ed.comment}</div>` : ''}
+              </div>`).join('')}
           </div>
-        </div>
-      `;
+        </div>`;
     }
 
     init();
