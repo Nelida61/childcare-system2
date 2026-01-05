@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>托育人員鼓勵機制試辦計畫 - 新北市三重區居家托育服務中心</title>
+  <title>托育人員鼓勵機制試辦計畫</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -21,19 +21,38 @@
   </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
-    body { font-family: 'Noto Sans TC', sans-serif; }
-    .heart-checkbox { appearance: none; width: 32px; height: 32px; cursor: pointer; position: relative; }
-    .heart-checkbox::before { content: '🤍'; font-size: 28px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
-    .heart-checkbox:checked::before { content: '❤️'; }
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+    }
+    .heart-checkbox {
+      appearance: none;
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      position: relative;
+    }
+    .heart-checkbox::before {
+      content: '🤍';
+      font-size: 28px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .heart-checkbox:checked::before {
+      content: '❤️';
+    }
   </style>
 </head>
-<body class="bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 min-h-screen flex flex-col">
-  <div id="app" class="flex-grow"></div>
+<body class="bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 min-h-screen">
+  <div id="app"></div>
 
   <script>
+    // Supabase 設定
     const SUPABASE_URL = 'https://utszytwaabadivssondj.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0c3p5dHdhYWJhZGl2c3NvbmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzMzQ1MDIsImV4cCI6MjA3NzkxMDUwMn0.Tq2RlCaOegGV7I8jYqgFLHOLpm-bic1RTuIpRzuwqaY';
 
+    // 評價項目定義 (原始定義)
     const EVALUATION_ITEMS = {
       communication: [
         { key: 'communication_1', text: '清楚表達托育理念及托育內容' },
@@ -66,27 +85,30 @@
     };
 
     const icons = {
-      home: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>',
-      user: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+      home: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>',
+      user: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+      logout: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>',
+      news: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path><path d="M18 14h-8"></path><path d="M15 18h-5"></path><path d="M10 6h8v4h-8V6Z"></path></svg>',
+      megaphone: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"></path><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path></svg>',
       heart: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>',
       star: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>'
     };
 
     let state = {
       user: null, userRole: null, providerData: null, parentData: null, adminData: null,
-      adminStats: { totalParents: 0, evaluatedParents: 0 }, assignedProviders: [],
-      allProviders: [], selectedProviderForAdmin: null, providerEvaluationsDetail: [],
-      currentEvaluation: null, currentComment: null, selectedProvider: null,
-      evaluationStats: null, news: [], currentPage: 'home', error: '', loading: false
+      adminStats: { totalParents: 0, evaluatedParents: 0 },
+      assignedProviders: [], allProviders: [], selectedProviderForAdmin: null,
+      providerEvaluationsDetail: [], currentEvaluation: null, currentComment: null,
+      selectedProvider: null, evaluationStats: null, news: [], currentPage: 'home', error: ''
     };
 
     function init() { checkUser(); fetchNews(); render(); }
-    function toggleElement(id) { const el = document.getElementById(id); if (el) el.classList.toggle('hidden'); }
-    
+
+    // 原始 fetch 邏輯保持不變
     function checkUser() {
-      const stored = sessionStorage.getItem('childcare_user');
-      if (stored) {
-        state.user = JSON.parse(stored);
+      const storedUser = sessionStorage.getItem('childcare_user');
+      if (storedUser) {
+        state.user = JSON.parse(storedUser);
         state.userRole = state.user.role;
         if (state.userRole === 'provider') fetchProviderData();
         else if (state.userRole === 'parent') fetchParentData();
@@ -96,230 +118,330 @@
 
     async function fetchNews() {
       try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/news?select=*&order=published_date.desc`, {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/news?select=*&order=published_date.desc`, {
           headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
         });
-        if (res.ok) { state.news = await res.json(); render(); }
-      } catch (e) {}
+        if (response.ok) { state.news = await response.json(); render(); }
+      } catch (error) { console.error(error); }
     }
 
-    // --- 家長端修復重點 ---
-    async function fetchParentData() {
-      state.loading = true; render();
-      try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/parents?user_id=eq.${state.user.id}&select=*`, {
-          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-        });
-        if (res.ok) state.parentData = (await res.json())[0];
-        await fetchAssignedProviders();
-      } catch (e) {
-        state.error = "讀取家長資料失敗";
-      } finally {
-        state.loading = false; render();
-      }
-    }
-
-    async function fetchAssignedProviders() {
-      try {
-        const aRes = await fetch(`${SUPABASE_URL}/rest/v1/parent_provider_assignments?parent_user_id=eq.${state.user.id}&select=provider_id`, {
-          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-        });
-        if (aRes.ok) {
-          const assignments = await aRes.json();
-          const ids = assignments.map(a => a.provider_id);
-          if (ids.length > 0) {
-            const pRes = await fetch(`${SUPABASE_URL}/rest/v1/child_care_providers?id=in.(${ids.join(',')})&select=*`, {
-              headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-            });
-            if (pRes.ok) state.assignedProviders = await pRes.json();
-          } else {
-            state.assignedProviders = []; // 確定沒有分配
-          }
-        }
-      } catch (e) {
-        console.error("分配讀取錯誤:", e);
-      }
-    }
-
-    async function fetchParentEvaluation(pid) {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/evaluations?parent_user_id=eq.${state.user.id}&provider_id=eq.${pid}&select=*`, {
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-      });
-      if (res.ok) state.currentEvaluation = (await res.json())[0] || null;
-      render();
-    }
-
-    async function fetchParentComment(pid) {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/parent_comments?parent_user_id=eq.${state.user.id}&provider_id=eq.${pid}&select=*`, {
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-      });
-      if (res.ok) state.currentComment = (await res.json())[0] || null;
-      render();
-    }
-
-    // --- 其他角色與功能 ---
     async function fetchProviderData() {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/child_care_providers?user_id=eq.${state.user.id}&select=*`, {
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-      });
-      if (res.ok) { state.providerData = (await res.json())[0]; fetchEvaluationStats(); render(); }
+      if (!state.user) return;
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/child_care_providers?user_id=eq.${state.user.id}&select=*`, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          state.providerData = data[0];
+          await fetchEvaluationStats();
+          render();
+        }
+      } catch (error) { console.error(error); }
     }
 
     async function fetchEvaluationStats() {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/provider_evaluation_stats?provider_id=eq.${state.providerData.id}&select=*`, {
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-      });
-      if (res.ok) { state.evaluationStats = (await res.json())[0] || null; render(); }
+      if (!state.providerData) return;
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/provider_evaluation_stats?provider_id=eq.${state.providerData.id}&select=*`, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          state.evaluationStats = data[0] || null;
+          render();
+        }
+      } catch (error) { console.error(error); }
     }
 
     async function fetchAdminData() {
-      const adminRes = await fetch(`${SUPABASE_URL}/rest/v1/admins?user_id=eq.${state.user.id}&select=*`, {
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-      });
-      if (adminRes.ok) state.adminData = (await adminRes.json())[0];
-      await fetchAllProvidersWithStats();
-      render();
+      if (!state.user) return;
+      try {
+        const adminRes = await fetch(`${SUPABASE_URL}/rest/v1/admins?user_id=eq.${state.user.id}&select=*`, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+        });
+        if (adminRes.ok) state.adminData = (await adminRes.json())[0];
+        await fetchAllProvidersWithStats();
+        render();
+      } catch (error) { console.error(error); }
     }
 
     async function fetchAllProvidersWithStats() {
-      const pRes = await fetch(`${SUPABASE_URL}/rest/v1/child_care_providers?select=*&order=name`, {
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-      });
-      const sRes = await fetch(`${SUPABASE_URL}/rest/v1/provider_evaluation_stats?select=*`, {
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-      });
-      if (pRes.ok && sRes.ok) {
-        const providers = await pRes.json();
-        const stats = await sRes.json();
-        state.allProviders = providers.map(p => ({
-          ...p, stats: stats.find(s => s.provider_id === p.id) || { total_hearts: 0, total_parents: 0 }
-        }));
+      if (!state.user) return;
+      try {
+        const providersRes = await fetch(`${SUPABASE_URL}/rest/v1/child_care_providers?select=*&order=name`, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+        });
+        if (!providersRes.ok) return;
+        const providers = await providersRes.json();
+        const statsRes = await fetch(`${SUPABASE_URL}/rest/v1/provider_evaluation_stats?select=*`, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+        });
+        let stats = [];
+        if (statsRes.ok) stats = await statsRes.json();
+        state.allProviders = providers.map(provider => {
+          const stat = stats.find(s => s.provider_id === provider.id);
+          return { ...provider, stats: stat || { total_hearts: 0, total_parents: 0, communication_hearts: 0, activity_hearts: 0, routine_hearts: 0, relationship_hearts: 0 } };
+        });
         await fetchParentStats();
-      }
+        await fetchCommentCounts();
+      } catch (error) { console.error(error); }
+    }
+
+    async function fetchCommentCounts() {
+      if (!state.user) return;
+      try {
+        const commentsRes = await fetch(`${SUPABASE_URL}/rest/v1/parent_comments?select=provider_id`, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+        });
+        if (commentsRes.ok) {
+          const comments = await commentsRes.json();
+          const commentCounts = {};
+          comments.forEach(comment => { commentCounts[comment.provider_id] = (commentCounts[comment.provider_id] || 0) + 1; });
+          state.allProviders.forEach(provider => {
+            const count = commentCounts[provider.id] || 0;
+            const el = document.getElementById(`comment-count-${provider.id}`);
+            if (el) el.textContent = count;
+          });
+        }
+      } catch (error) { console.error(error); }
     }
 
     async function fetchParentStats() {
-      const pRes = await fetch(`${SUPABASE_URL}/rest/v1/parents?select=user_id`, {
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-      });
-      const eRes = await fetch(`${SUPABASE_URL}/rest/v1/evaluations?select=parent_user_id`, {
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
-      });
-      if (pRes.ok && eRes.ok) {
-        state.adminStats.totalParents = (await pRes.json()).length;
-        state.adminStats.evaluatedParents = new Set((await eRes.json()).map(e => e.parent_user_id)).size;
-        render();
-      }
-    }
-
-    async function handleLogin(email, password) {
-      state.error = ''; state.loading = true; render();
+      if (!state.user) return;
       try {
-        const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-          method: 'POST',
-          headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
+        const parentsRes = await fetch(`${SUPABASE_URL}/rest/v1/parents?select=user_id`, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
         });
-        const data = await res.json();
-        if (!data.access_token) { state.error = '帳號或密碼錯誤'; state.loading = false; render(); return; }
-        
-        const uid = data.user.id;
-        const tk = data.access_token;
-        let role = null;
-
-        const pCheck = await fetch(`${SUPABASE_URL}/rest/v1/child_care_providers?user_id=eq.${uid}&select=id`, { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${tk}` } });
-        if (pCheck.ok && (await pCheck.json()).length > 0) role = 'provider';
-        if (!role) {
-          const paCheck = await fetch(`${SUPABASE_URL}/rest/v1/parents?user_id=eq.${uid}&select=id`, { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${tk}` } });
-          if (paCheck.ok && (await paCheck.json()).length > 0) role = 'parent';
+        if (parentsRes.ok) {
+          const parents = await parentsRes.json();
+          state.adminStats.totalParents = parents.length;
+          const evaluationsRes = await fetch(`${SUPABASE_URL}/rest/v1/evaluations?select=parent_user_id`, {
+            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+          });
+          if (evaluationsRes.ok) {
+            const evaluations = await evaluationsRes.json();
+            state.adminStats.evaluatedParents = new Set(evaluations.map(e => e.parent_user_id)).size;
+          }
         }
-        if (!role) {
-          const adCheck = await fetch(`${SUPABASE_URL}/rest/v1/admins?user_id=eq.${uid}&select=id`, { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${tk}` } });
-          if (adCheck.ok && (await adCheck.json()).length > 0) role = 'admin';
-        }
-
-        if (!role) { state.error = '無對應身份'; state.loading = false; render(); return; }
-        
-        state.user = { id: uid, email: data.user.email, token: tk, role: role };
-        state.userRole = role;
-        sessionStorage.setItem('childcare_user', JSON.stringify(state.user));
-        location.reload();
-      } catch (e) { state.error = '登入失敗'; state.loading = false; render(); }
+        render();
+      } catch (error) { console.error(error); }
     }
 
-    function handleLogout() { sessionStorage.removeItem('childcare_user'); location.reload(); }
-    function navigateTo(page) { state.currentPage = page; state.error = ''; render(); }
+    async function fetchProviderDetailForAdmin(providerId) {
+      if (!state.user) return;
+      try {
+        const evaluationsRes = await fetch(`${SUPABASE_URL}/rest/v1/evaluations?provider_id=eq.${providerId}&select=*`, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+        });
+        if (!evaluationsRes.ok) return;
+        const evaluations = await evaluationsRes.json();
+        const commentsRes = await fetch(`${SUPABASE_URL}/rest/v1/parent_comments?provider_id=eq.${providerId}&select=*`, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+        });
+        let comments = [];
+        if (commentsRes.ok) comments = await commentsRes.json();
+        const parentIds = [...new Set([...evaluations.map(e => e.parent_user_id), ...comments.map(c => c.parent_user_id)])];
+        if (parentIds.length > 0) {
+          const parentsRes = await fetch(`${SUPABASE_URL}/rest/v1/parents?user_id=in.(${parentIds.join(',')})&select=*`, {
+            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+          });
+          if (parentsRes.ok) {
+            const parents = await parentsRes.json();
+            state.providerEvaluationsDetail = evaluations.map(evaluation => {
+              const parent = parents.find(p => p.user_id === evaluation.parent_user_id);
+              const comment = comments.find(c => c.parent_user_id === evaluation.parent_user_id);
+              return { ...evaluation, parent_name: parent ? parent.name : '未知家長', comment: comment ? comment.comment : null, comment_id: comment ? comment.id : null };
+            });
+            comments.forEach(comment => {
+              if (!evaluations.some(e => e.parent_user_id === comment.parent_user_id)) {
+                const parent = parents.find(p => p.user_id === comment.parent_user_id);
+                state.providerEvaluationsDetail.push({
+                  parent_user_id: comment.parent_user_id, parent_name: parent ? parent.name : '未知家長', comment: comment.comment, comment_id: comment.id, updated_at: comment.updated_at,
+                  communication_1: false, communication_2: false, communication_3: false, communication_4: false, communication_5: false,
+                  activity_1: false, activity_2: false, activity_3: false, activity_4: false, activity_5: false,
+                  routine_1: false, routine_2: false, routine_3: false, routine_4: false, routine_5: false,
+                  relationship_1: false, relationship_2: false, relationship_3: false, relationship_4: false, relationship_5: false
+                });
+              }
+            });
+          }
+        }
+        render();
+      } catch (error) { console.error(error); }
+    }
 
-    async function saveEvaluation(providerId, evaluationData) {
-      if (!confirm('提交後不可修改，確定嗎？')) return;
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/evaluations`, {
-        method: 'POST',
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...evaluationData, parent_user_id: state.user.id, provider_id: providerId })
-      });
-      if (res.ok) { alert('提交成功'); navigateTo('evaluate'); }
+    async function selectProviderForAdmin(provider) {
+      state.selectedProviderForAdmin = provider;
+      await fetchProviderDetailForAdmin(provider.id);
+      state.currentPage = 'admin-provider-detail';
+      render();
+    }
+
+    async function fetchParentData() {
+      if (!state.user) return;
+      try {
+        const parentRes = await fetch(`${SUPABASE_URL}/rest/v1/parents?user_id=eq.${state.user.id}&select=*`, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+        });
+        if (parentRes.ok) state.parentData = (await parentRes.json())[0];
+        await fetchAssignedProviders();
+        render();
+      } catch (error) { console.error(error); }
+    }
+
+    async function fetchAssignedProviders() {
+      if (!state.user) return;
+      try {
+        const assignmentRes = await fetch(`${SUPABASE_URL}/rest/v1/parent_provider_assignments?parent_user_id=eq.${state.user.id}&select=provider_id`, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+        });
+        if (assignmentRes.ok) {
+          const assignments = await assignmentRes.json();
+          if (assignments.length === 0) { state.assignedProviders = []; return; }
+          const providerIds = assignments.map(a => a.provider_id);
+          const providerRes = await fetch(`${SUPABASE_URL}/rest/v1/child_care_providers?id=in.(${providerIds.join(',')})&select=*`, {
+            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+          });
+          if (providerRes.ok) state.assignedProviders = await providerRes.json();
+        }
+      } catch (error) { console.error(error); }
+    }
+
+    async function fetchComment(providerId) {
+      if (!state.user) return;
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/parent_comments?parent_user_id=eq.${state.user.id}&provider_id=eq.${providerId}&select=*`, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+        });
+        if (response.ok) { state.currentComment = (await response.json())[0] || null; }
+      } catch (error) { console.error(error); }
+    }
+
+    async function fetchEvaluation(providerId) {
+      if (!state.user) return;
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/evaluations?parent_user_id=eq.${state.user.id}&provider_id=eq.${providerId}&select=*`, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}` }
+        });
+        if (response.ok) { state.currentEvaluation = (await response.json())[0] || null; render(); }
+      } catch (error) { console.error(error); }
     }
 
     async function saveComment(providerId) {
-      const txt = document.getElementById('parentComment').value.trim();
-      if (!txt) return;
-      if (!confirm('提交留言後無法修改，確定嗎？')) return;
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/parent_comments`, {
-        method: 'POST',
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ parent_user_id: state.user.id, provider_id: providerId, comment: txt })
-      });
-      if (res.ok) { alert('留言已送出'); navigateTo('evaluate'); }
+      if (!state.user || state.currentComment) return;
+      const commentText = document.getElementById('parentComment').value.trim();
+      if (!commentText) { alert('請輸入留言內容'); return; }
+      if (!confirm('確定要提交留言嗎？提交後將無法修改。')) return;
+      try {
+        const createRes = await fetch(`${SUPABASE_URL}/rest/v1/parent_comments`, {
+          method: 'POST',
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+          body: JSON.stringify({ parent_user_id: state.user.id, provider_id: providerId, comment: commentText })
+        });
+        if (createRes.ok) { alert('留言已成功提交！'); await fetchComment(providerId); render(); }
+      } catch (error) { console.error(error); }
     }
 
-    // --- 介面渲染 ---
+    async function saveEvaluation(providerId, evaluationData) {
+      if (!state.user || state.currentEvaluation) return;
+      if (!confirm('確定要提交評價嗎？提交後將無法修改。')) return;
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/evaluations`, {
+          method: 'POST',
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${state.user.token}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+          body: JSON.stringify({ ...evaluationData, parent_user_id: state.user.id, provider_id: providerId })
+        });
+        if (response.ok) { alert('評價已成功提交！'); await fetchEvaluation(providerId); render(); }
+      } catch (error) { console.error(error); }
+    }
+
+    async function handleLogin(email, password) {
+      state.error = '';
+      if (!email || !password) { state.error = '請輸入帳號和密碼'; render(); return; }
+      try {
+        const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+          method: 'POST', headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const authData = await authResponse.json();
+        if (!authData.access_token) { state.error = '帳號或密碼錯誤'; render(); return; }
+        const userId = authData.user.id;
+        const token = authData.access_token;
+        let userRole = null;
+        const pCheck = await fetch(`${SUPABASE_URL}/rest/v1/child_care_providers?user_id=eq.${userId}&select=id`, { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${token}` } });
+        if (pCheck.ok && (await pCheck.json()).length > 0) userRole = 'provider';
+        if (!userRole) {
+          const paCheck = await fetch(`${SUPABASE_URL}/rest/v1/parents?user_id=eq.${userId}&select=id`, { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${token}` } });
+          if (paCheck.ok && (await paCheck.json()).length > 0) userRole = 'parent';
+        }
+        if (!userRole) {
+          const adCheck = await fetch(`${SUPABASE_URL}/rest/v1/admins?user_id=eq.${userId}&select=id`, { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${token}` } });
+          if (adCheck.ok && (await adCheck.json()).length > 0) userRole = 'admin';
+        }
+        if (!userRole) { state.error = '此帳號未註冊角色'; render(); return; }
+        state.user = { id: userId, email: authData.user.email, token: token, role: userRole };
+        state.userRole = userRole;
+        sessionStorage.setItem('childcare_user', JSON.stringify(state.user));
+        if (userRole === 'provider') { state.currentPage = 'profile'; fetchProviderData(); }
+        else if (userRole === 'parent') { state.currentPage = 'evaluate'; fetchParentData(); }
+        else if (userRole === 'admin') { state.currentPage = 'admin-dashboard'; fetchAdminData(); }
+      } catch (error) { state.error = '登入失敗'; render(); }
+    }
+
+    function handleLogout() { sessionStorage.removeItem('childcare_user'); location.reload(); }
+
+    function navigateTo(page) { state.currentPage = page; state.error = ''; render(); }
+
+    function toggleElement(id) { const el = document.getElementById(id); if (el) el.classList.toggle('hidden'); }
+
+    // --- 渲染部分 (含修改) ---
+
     function render() {
       const app = document.getElementById('app');
       app.innerHTML = `
         <nav class="bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 shadow-lg">
-          <div class="max-w-7xl mx-auto px-4 h-20 flex justify-between items-center">
-            <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateTo('home')">
-              <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center">👶</div>
-              <h1 class="text-xl font-bold text-white hidden sm:block">托育人員鼓勵機制</h1>
-            </div>
-            <div class="flex items-center space-x-4">
-              ${state.user ? `
-                <button onclick="navigateTo('home')" class="text-white">${icons.home}</button>
-                ${state.userRole === 'provider' ? `<button onclick="navigateTo('profile')" class="text-white">${icons.user}</button>` : ''}
-                ${state.userRole === 'parent' ? `<button onclick="navigateTo('evaluate')" class="text-white">${icons.heart}</button>` : ''}
-                ${state.userRole === 'admin' ? `<button onclick="navigateTo('admin-dashboard')" class="text-white">${icons.star}</button>` : ''}
-                <button onclick="handleLogout()" class="px-3 py-1 bg-red-500 text-white rounded text-sm">登出</button>
-              ` : `<button onclick="navigateTo('login')" class="px-4 py-2 bg-white text-yellow-600 rounded font-bold">登入</button>`}
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+              <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateTo('home')">
+                <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md"><span>👶</span></div>
+                <div><h1 class="text-2xl font-bold text-white">托育人員鼓勵機制試辦計畫</h1></div>
+              </div>
+              <div class="flex items-center space-x-4">
+                ${state.user ? `
+                  <button onclick="navigateTo('home')" class="text-white">${icons.home}</button>
+                  ${state.userRole === 'provider' ? `<button onclick="navigateTo('profile')" class="text-white">${icons.user}</button>` : ''}
+                  ${state.userRole === 'parent' ? `<button onclick="navigateTo('evaluate')" class="text-white">${icons.heart}</button>` : ''}
+                  ${state.userRole === 'admin' ? `<button onclick="navigateTo('admin-dashboard')" class="text-white">${icons.star}</button>` : ''}
+                  <button onclick="handleLogout()" class="px-4 py-2 bg-red-500 text-white rounded-lg">登出</button>
+                ` : `<button onclick="navigateTo('login')" class="px-6 py-2 bg-white text-yellow-600 rounded-lg font-semibold">登入</button>`}
+              </div>
             </div>
           </div>
         </nav>
-        <div class="flex-grow">
-          <main class="max-w-7xl mx-auto px-4 py-10">
-            ${state.loading ? `<div class="text-center py-20 text-gray-500">載入中，請稍候...</div>` : renderContent()}
-          </main>
-        </div>
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          ${renderPage()}
+        </main>
         <footer class="bg-gradient-to-r from-gray-800 to-gray-900 mt-20">
           <div class="max-w-7xl mx-auto px-4 py-10 text-center text-gray-300">
-            <div class="space-y-2 mb-6">
-              <p class="text-lg font-bold text-white">© 新北市三重區居家托育服務中心/居服中心 All Rights Reserved.</p>
-              <div class="flex flex-col md:flex-row justify-center items-center gap-2 md:gap-6 text-sm">
-                <p>地址：新北市三重區三和路三段81號2樓</p>
-                <p>電話：02-29760376</p>
-                <p>傳真：02-29760375</p>
-              </div>
-              <p class="text-sm">電子郵件：baby29760376@gmail.com</p>
+            <p class="text-lg font-bold text-white mb-2">© 新北市三重區居家托育服務中心/居服中心 All Rights Reserved.</p>
+            <div class="flex flex-col md:flex-row justify-center gap-4 text-sm mb-2">
+              <span>地址：新北市三重區三和路三段81號2樓</span>
+              <span>電話：02-29760376</span>
+              <span>傳真：02-29760375</span>
             </div>
+            <p class="text-sm">電子郵件：baby29760376@gmail.com</p>
           </div>
         </footer>
       `;
     }
 
-    function renderContent() {
+    function renderPage() {
       switch(state.currentPage) {
         case 'home': return renderHome();
         case 'login': return renderLogin();
         case 'profile': return renderProfile();
-        case 'evaluate': return renderEvaluateList();
+        case 'evaluate': return renderEvaluate();
         case 'evaluate-detail': return renderEvaluateDetail();
         case 'admin-dashboard': return renderAdminDashboard();
         case 'admin-provider-detail': return renderAdminProviderDetail();
@@ -328,139 +450,127 @@
     }
 
     function renderHome() {
-        return `
-          <div class="text-center py-20 bg-white rounded-3xl shadow-xl">
-            <h2 class="text-4xl font-bold text-gray-800 mb-4">歡迎使用評價系統</h2>
-            <p class="text-gray-500 mb-8">讓我們一起營造更好的托育環境</p>
-            <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto px-4 text-left">
-              ${state.news.slice(0, 4).map(n => `<div class="p-4 border-l-4 border-yellow-400 bg-yellow-50"><h4 class="font-bold">${n.title}</h4><p class="text-sm text-gray-600">${n.content}</p></div>`).join('')}
-            </div>
-          </div>`;
+      return `
+        <div class="bg-white rounded-2xl shadow-xl p-8 text-center">
+          <h2 class="text-4xl font-bold mb-4">歡迎來到評價系統</h2>
+          <div class="grid md:grid-cols-2 gap-8 text-left mt-8">
+            ${state.news.map(n => `<div class="p-4 border-l-4 border-yellow-400 bg-yellow-50"><h4 class="font-bold">${n.title}</h4><p>${n.content}</p></div>`).join('')}
+          </div>
+        </div>
+      `;
     }
 
     function renderLogin() {
-        return `
-          <div class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl border-t-8 border-yellow-400">
-            <h3 class="text-2xl font-bold mb-6 text-center">帳號登入</h3>
-            ${state.error ? `<p class="text-red-500 mb-4">${state.error}</p>` : ''}
-            <input id="email" type="email" placeholder="Email" class="w-full p-3 border mb-4 rounded">
-            <input id="password" type="password" placeholder="Password" class="w-full p-3 border mb-6 rounded">
-            <button onclick="handleLogin(document.getElementById('email').value, document.getElementById('password').value)" class="w-full bg-yellow-400 text-white p-3 rounded font-bold">進入系統</button>
-          </div>`;
+      return `
+        <div class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl">
+          <h2 class="text-3xl font-bold text-center mb-8">登入系統</h2>
+          ${state.error ? `<div class="p-4 bg-red-50 text-red-700 mb-4 rounded">${state.error}</div>` : ''}
+          <input type="email" id="email" placeholder="電子郵件" class="w-full px-4 py-3 border rounded-lg mb-4">
+          <input type="password" id="password" placeholder="密碼" class="w-full px-4 py-3 border rounded-lg mb-6">
+          <button onclick="handleLogin(document.getElementById('email').value, document.getElementById('password').value)" class="w-full py-3 bg-yellow-400 text-white font-bold rounded-lg">登入</button>
+        </div>
+      `;
     }
 
     function renderProfile() {
-        const s = state.evaluationStats || { total_hearts:0, total_parents:0 };
-        return `
-          <div class="bg-white p-8 rounded-2xl shadow-lg">
-            <div class="flex items-center space-x-6 mb-10"><div class="text-6xl">👩‍🏫</div><div><h2 class="text-3xl font-bold">${state.providerData?.name || '托育人員'}</h2><p class="text-gray-500">${state.providerData?.account || ''}</p></div></div>
-            <div class="grid grid-cols-2 gap-4">
-              <div class="p-6 bg-red-50 rounded-xl text-center border border-red-100"><p class="text-gray-500 text-sm">累積愛心</p><p class="text-4xl font-bold text-red-500">${s.total_hearts}</p></div>
-              <div class="p-6 bg-blue-50 rounded-xl text-center border border-blue-100"><p class="text-gray-500 text-sm">評價家長</p><p class="text-4xl font-bold text-blue-500">${s.total_parents}</p></div>
-            </div>
-          </div>`;
+      const s = state.evaluationStats || { total_hearts: 0, total_parents: 0 };
+      return `
+        <div class="bg-white rounded-2xl shadow-xl p-8">
+          <h2 class="text-3xl font-bold mb-6">${state.providerData?.name}</h2>
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="p-6 bg-red-50 rounded-xl text-center"><p>總愛心</p><p class="text-4xl font-bold text-red-500">${s.total_hearts}</p></div>
+            <div class="p-6 bg-blue-50 rounded-xl text-center"><p>評價人數</p><p class="text-4xl font-bold text-blue-500">${s.total_parents}</p></div>
+          </div>
+        </div>
+      `;
     }
 
-    function renderEvaluateList() {
-        if (state.assignedProviders.length === 0) {
-            return `
-              <div class="text-center py-20 bg-white rounded-3xl shadow-xl px-6">
-                <div class="text-6xl mb-4">📋</div>
-                <h3 class="text-2xl font-bold text-gray-800 mb-2">尚未分配可評價的人員</h3>
-                <p class="text-gray-500 mb-6">系統查無您名下對應的托育人員，若需進行評價，請聯繫居服中心。</p>
-                <div class="inline-block bg-amber-50 p-4 rounded-xl border border-amber-200 text-sm">
-                    <p><strong>中心電話：</strong>02-29760376</p>
-                    <p><strong>服務時間：</strong>週一至週五 08:30 - 17:30</p>
-                </div>
-              </div>`;
-        }
-        return `
-          <div class="grid md:grid-cols-3 gap-6">
-            ${state.assignedProviders.map(p => `
-              <div class="bg-white p-6 rounded-xl shadow cursor-pointer hover:ring-2 hover:ring-yellow-400 transition" 
-                   onclick="(async () => { state.selectedProvider = ${JSON.stringify(p).replace(/"/g, '&quot;')}; await fetchParentEvaluation(p.id); await fetchParentComment(p.id); state.currentPage='evaluate-detail'; render(); })()">
-                <div class="text-4xl mb-4 text-center">👩‍🏫</div>
-                <h4 class="text-xl font-bold text-center">${p.name}</h4>
-                <p class="text-center text-gray-500 text-sm mt-2">點選開始評價</p>
-              </div>`).join('')}
-          </div>`;
+    function renderEvaluate() {
+      return `
+        <div class="grid md:grid-cols-3 gap-6">
+          ${state.assignedProviders.map(p => `
+            <div class="bg-white p-6 rounded-xl shadow cursor-pointer" onclick="(async () => { state.selectedProvider = ${JSON.stringify(p).replace(/"/g, '&quot;')}; await fetchEvaluation(p.id); await fetchComment(p.id); state.currentPage = 'evaluate-detail'; render(); })()">
+              <h3 class="text-xl font-bold text-center">${p.name}</h3>
+              <p class="text-center text-gray-500">點擊開始評價</p>
+            </div>
+          `).join('')}
+        </div>
+      `;
     }
 
     function renderEvaluateDetail() {
       const p = state.selectedProvider;
-      const locked = !!state.currentEvaluation?.id;
+      const ev = state.currentEvaluation || {};
+      const locked = !!ev.id;
       return `
-        <div class="max-w-3xl mx-auto bg-white p-8 rounded-2xl shadow-xl">
-          <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold italic">正在評價：${p.name}</h2>
-            <button onclick="navigateTo('evaluate')" class="text-gray-400 hover:text-gray-600">← 返回</button>
-          </div>
+        <div class="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-xl">
+          <h2 class="text-2xl font-bold mb-6 italic">評價對象：${p.name}</h2>
           <form onsubmit="event.preventDefault(); const d={}; Object.values(EVALUATION_ITEMS).flat().forEach(i=>d[i.key]=document.getElementsByName(i.key)[0].checked); saveEvaluation('${p.id}', d);">
             ${Object.entries(EVALUATION_ITEMS).map(([cat, items]) => `
               <div class="mb-8">
-                <h3 class="font-bold text-lg mb-4 text-yellow-600 border-b pb-2">${cat === 'communication' ? '一、保親溝通' : cat === 'activity' ? '二、活動安排' : cat === 'routine' ? '三、作息習慣' : '四、保親關係'}</h3>
-                ${items.map(i => `<label class="flex items-center space-x-3 mb-3 p-3 bg-gray-50 rounded hover:bg-gray-100 transition"><input type="checkbox" name="${i.key}" ${state.currentEvaluation?.[i.key]?'checked':''} ${locked?'disabled':''} class="heart-checkbox"><span class="text-gray-700">${i.text}</span></label>`).join('')}
+                <h3 class="font-bold text-lg mb-4 text-yellow-600">${cat === 'communication' ? '保親溝通' : cat === 'activity' ? '活動安排' : cat === 'routine' ? '作息習慣' : '保親關係'}</h3>
+                ${items.map(i => `<label class="flex items-center space-x-3 mb-2 p-2 bg-gray-50 rounded"><input type="checkbox" name="${i.key}" ${ev[i.key]?'checked':''} ${locked?'disabled':''} class="heart-checkbox"><span>${i.text}</span></label>`).join('')}
               </div>
             `).join('')}
-            ${!locked ? `<button type="submit" class="w-full bg-yellow-400 text-white p-4 rounded-xl font-bold text-lg shadow-lg hover:bg-yellow-500 transition">送出評價</button>` : `<div class="p-4 bg-green-50 text-green-700 text-center rounded-xl border border-green-200 font-bold">✅ 已完成提交，評價內容已鎖定</div>`}
+            ${!locked ? `<button type="submit" class="w-full py-4 bg-yellow-400 text-white font-bold rounded-lg">提交評價</button>` : `<div class="p-4 bg-green-100 text-green-700 text-center rounded">已完成評價</div>`}
           </form>
-          <div class="mt-10 pt-10 border-t">
-            <h3 class="font-bold mb-4 flex items-center gap-2"><span>💬</span> 文字留言 (僅供中心參考)</h3>
-            ${state.currentComment ? `<div class="p-4 bg-gray-50 rounded-xl italic border">"${state.currentComment.comment}"</div>` : `
-              <textarea id="parentComment" class="w-full p-4 border rounded-xl mb-4 focus:ring-2 focus:ring-yellow-400 outline-none" rows="3" placeholder="有什麼建議想對中心說嗎？"></textarea>
-              <button onclick="saveComment('${p.id}')" class="w-full bg-gray-800 text-white p-3 rounded-xl font-bold hover:bg-black transition">送出留言</button>`}
+          <div class="mt-8 pt-8 border-t">
+            <h3 class="font-bold mb-4">文字留言 (僅中心管理員可見)</h3>
+            ${state.currentComment ? `<div class="p-4 bg-gray-50 rounded">${state.currentComment.comment}</div>` : `
+              <textarea id="parentComment" class="w-full p-4 border rounded-lg mb-4" rows="3"></textarea>
+              <button onclick="saveComment('${p.id}')" class="w-full py-3 bg-gray-800 text-white rounded-lg">提交留言</button>
+            `}
           </div>
-          <div class="mt-8 p-6 bg-red-50 rounded-xl border-2 border-dashed border-red-200">
-             <p class="text-sm text-red-800 font-bold mb-2">💡 評價修改須知：</p>
-             <p class="text-xs text-red-700">為維護系統公正性，評價送出後即鎖定。如確有誤填，請致電居服中心 <strong>02-29760376</strong>，由工作人員核對身分後手動調整。</p>
+          <div class="mt-10 p-4 bg-amber-50 rounded-lg border-2 border-dashed border-amber-200">
+            <p class="text-sm text-amber-800">💡 <strong>如需修改評價：</strong> 請致電中心 02-29760376 或 Email baby29760376@gmail.com，由管理員手動調整。</p>
           </div>
-        </div>`;
+        </div>
+      `;
     }
 
     function renderAdminDashboard() {
       return `
-        <div class="grid md:grid-cols-3 gap-4 mb-10 text-center">
-          <div class="bg-white p-6 rounded-xl shadow border-b-4 border-yellow-400"><p class="text-gray-500">家長總數</p><p class="text-4xl font-bold text-yellow-500">${state.adminStats.totalParents}</p></div>
-          <div class="bg-white p-6 rounded-xl shadow border-b-4 border-green-400"><p class="text-gray-500">已評價數</p><p class="text-4xl font-bold text-green-500">${state.adminStats.evaluatedParents}</p></div>
-          <div class="bg-white p-6 rounded-xl shadow border-b-4 border-blue-400"><p class="text-gray-500">托育人員</p><p class="text-4xl font-bold text-blue-500">${state.allProviders.length}</p></div>
+        <div class="grid md:grid-cols-3 gap-6 mb-10 text-center">
+          <div class="bg-white p-6 rounded-xl shadow"><p>家長總數</p><p class="text-4xl font-bold text-yellow-500">${state.adminStats.totalParents}</p></div>
+          <div class="bg-white p-6 rounded-xl shadow"><p>已評價數</p><p class="text-4xl font-bold text-green-500">${state.adminStats.evaluatedParents}</p></div>
+          <div class="bg-white p-6 rounded-xl shadow"><p>托育人員</p><p class="text-4xl font-bold text-blue-500">${state.allProviders.length}</p></div>
         </div>
         <div class="space-y-4">
           ${state.allProviders.map(p => `
-            <div class="bg-white p-5 rounded-xl shadow flex justify-between items-center cursor-pointer hover:bg-gray-50" onclick="selectProviderForAdmin(${JSON.stringify(p).replace(/"/g, '&quot;')})">
-              <div class="flex items-center space-x-4"><span class="text-3xl">👩‍🏫</span><div><h4 class="font-bold">${p.name}</h4><p class="text-xs text-gray-400">@${p.account}</p></div></div>
-              <div class="flex space-x-8 text-center">
-                <div><p class="font-bold text-red-500">${p.stats.total_hearts}</p><p class="text-[10px] text-gray-400 uppercase">Hearts</p></div>
-                <button class="bg-gray-100 px-4 py-2 rounded text-sm font-bold">查看明細</button>
-              </div>
-            </div>`).join('')}
-        </div>`;
+            <div class="bg-white p-6 rounded-xl shadow flex justify-between items-center cursor-pointer" onclick="selectProviderForAdmin(${JSON.stringify(p).replace(/"/g, '&quot;')})">
+              <h4 class="font-bold text-lg">${p.name}</h4>
+              <div class="flex space-x-4"><span class="text-red-500">❤️ ${p.stats.total_hearts}</span><button class="bg-gray-100 px-4 py-2 rounded">詳情</button></div>
+            </div>
+          `).join('')}
+        </div>
+      `;
     }
 
     function renderAdminProviderDetail() {
       const p = state.selectedProviderForAdmin;
       return `
         <div class="max-w-5xl mx-auto">
-          <button onclick="navigateTo('admin-dashboard')" class="mb-6 text-gray-500 hover:text-gray-800">← 返回管理總覽</button>
-          <div class="bg-white p-8 rounded-2xl shadow-xl mb-8 border-t-8 border-blue-500">
-            <h2 class="text-3xl font-bold mb-2">${p.name}</h2>
-            <p class="text-gray-500 italic">評分明細與家長留言列表</p>
-          </div>
+          <button onclick="navigateTo('admin-dashboard')" class="mb-6 text-gray-500">← 返回總覽</button>
+          <h2 class="text-3xl font-bold mb-8">${p.name} 的詳情</h2>
           <div class="space-y-6">
-            ${state.providerEvaluationsDetail.length === 0 ? `<p class="text-center py-20 text-gray-400">尚無評價資料</p>` : state.providerEvaluationsDetail.map(ed => `
-              <div class="bg-white p-6 rounded-2xl shadow border-l-8 border-yellow-400">
-                <div class="flex justify-between items-start mb-6">
-                  <div><h4 class="text-lg font-bold">${ed.parent_name}</h4><p class="text-xs text-gray-400">${ed.updated_at ? new Date(ed.updated_at).toLocaleString() : '僅留言'}</p></div>
-                  <button onclick="toggleElement('detail-${ed.parent_user_id}')" class="text-xs bg-blue-500 text-white px-3 py-1 rounded font-bold">點選查看勾選項</button>
+            ${state.providerEvaluationsDetail.map(ed => `
+              <div class="bg-white p-6 rounded-2xl shadow">
+                <div class="flex justify-between items-start mb-4">
+                  <div><h4 class="font-bold">${ed.parent_name}</h4><p class="text-xs text-gray-400">${ed.updated_at || ''}</p></div>
+                  <button onclick="toggleElement('detail-${ed.parent_user_id}')" class="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded">查看勾選細項</button>
                 </div>
-                <div id="detail-${ed.parent_user_id}" class="hidden mb-6 p-4 bg-gray-50 rounded-xl grid md:grid-cols-2 lg:grid-cols-4 gap-4 text-[10px]">
+                <div id="detail-${ed.parent_user_id}" class="hidden p-4 bg-gray-50 rounded-lg grid md:grid-cols-2 gap-4 text-xs mb-4">
                   ${Object.entries(EVALUATION_ITEMS).map(([cat, items]) => `
-                    <div><p class="font-bold border-b mb-1 text-gray-600">${cat}</p>
-                    ${items.map(i => `<p class="${ed[i.key]?'text-red-500 font-bold':'text-gray-300'}">${ed[i.key]?'❤️':'⚪'} ${i.text}</p>`).join('')}</div>`).join('')}
+                    <div><p class="font-bold border-b mb-1">${cat}</p>
+                    ${items.map(i => `<p class="${ed[i.key]?'text-red-500 font-bold':'text-gray-300'}">${ed[i.key]?'❤️':'⚪'} ${i.text}</p>`).join('')}</div>
+                  `).join('')}
                 </div>
-                ${ed.comment ? `<div class="p-4 bg-amber-50 rounded-xl border border-amber-100 text-amber-900 text-sm italic">" ${ed.comment} "</div>` : ''}
-              </div>`).join('')}
+                ${ed.comment ? `<div class="p-4 bg-amber-50 rounded italic text-sm">留言：${ed.comment}</div>` : ''}
+              </div>
+            `).join('')}
           </div>
-        </div>`;
+        </div>
+      `;
     }
 
     init();
